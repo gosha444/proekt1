@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Продуктивность</title>
+    <style>
+        /* Reset and Base Styling */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Arial', sans-serif; }
+        body, html { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* Colors and Theme */
+        :root {
+            --primary-color: #8a7f8e;
+            --secondary-color: #f5f5f5;
+            --button-color: #fff;
+            --text-color: #333;
+            --background-color: #f8f4ff2;
+            --highlight-color: #5b8c49;
+            --task-color: #c29100;
+        }
+
+        /* Layout */
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            height: 100%;
+            overflow-y: auto;
+            background: var(--background-color);
+        }
+        .screen.active { display: flex; }
+
+        /* Section Styles */
+        .section {
+            background: var(--secondary-color);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 400px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        h2 { font-size: 1.4em; color: var(--primary-color); margin-bottom: 10px; }
+        p, textarea, input { font-size: 1em; margin-bottom: 10px; color: var(--text-color); }
+
+        /* Calendar Table */
+        .calendar-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .calendar-controls select, .calendar-controls button { padding: 5px; font-size: 1em; }
+        .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+        .calendar .date { padding: 10px; border: 1px solid #ddd; text-align: center; font-size: 0.9em; cursor: pointer; }
+        .calendar .date:hover { background: var(--highlight-color); color: #fff; }
+        .calendar .task-date { background: var(--task-color); }
+
+        /* Button Styling */
+        button {
+            background: var(--primary-color);
+            color: var(--button-color);
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background 0.3s;
+        }
+        button:hover { background: var(--highlight-color); }
+
+        /* Navigation Bar */
+        .nav {
+            display: flex;
+            justify-content: space-around;
+            background: var(--primary-color);
+            color: var(--button-color);
+            padding: 15px 0;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+        .nav button {
+            background: none;
+            color: var(--button-color);
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <!-- Screen 1: Goals -->
+    <div class="screen active" id="goals-screen">
+        <div class="section" id="goals">
+            <h2>Цели</h2>
+            <textarea id="goals-input" rows="5" placeholder="Введите свои цели..."></textarea>
+            <button onclick="saveGoals()">Сохранить цели</button>
+        </div>
+    </div>
+
+    <!-- Screen 2: Tips -->
+    <div class="screen" id="tips-screen">
+        <div class="section" id="tips">
+            <h2>Советы</h2>
+            <p>Для эффективной работы в течение дня, освоите несколько базовых техник тайм-менеджмента: <p>
+	<p>- Помидоро: Работайте 25 минут, затем 5 минут отдыхайте. Повторите четыре раза, затем сделайте более длительный перерыв.<p> 
+
+	<p>- GTD: Составляйте список дел, оценивайте и организуйте задачи по приоритетам. Регулярно пересматривайте и выполняйте их.<p> 
+
+	<p>- Канбан: Визуализируйте задачи по стадиям выполнения, чтобы отслеживать прогресс.<p> 
+
+	<p>- 18 минут: Утром определите три приоритетные задачи, каждый час проверяйте прогресс, вечером подведите итоги. <p>
+
+	<p>- Парето (80/20): Сосредоточьтесь на задачах, дающих максимальный результат. <p>
+
+	<p>- Эйзенхауэр: Разделите задачи по важности и срочности для эффективного приоритезации. 
+</p>
+        </div>
+    </div>
+
+    <!-- Screen 3: To-Do List -->
+    <div class="screen" id="todo-screen">
+        <div class="section" id="todo">
+            <h2>Список задач</h2>
+            <input type="text" id="task-input" placeholder="Новая задача..." style="width: 100%;">
+            <input type="date" id="task-date" style="width: 100%; margin-top: 5px;">
+            <button onclick="addTask()">Добавить задачу</button>
+            <ul id="todo-list"></ul>
+        </div>
+    </div>
+
+    <!-- Screen 4: Calendar -->
+    <div class="screen" id="calendar-screen">
+        <div class="section" id="calendar">
+            <h2>Календарь</h2>
+            <div class="calendar-controls">
+                <button onclick="changeMonth(-1)">◀</button>
+                <select id="month-select" onchange="createCalendar()"></select>
+                <select id="year-select" onchange="createCalendar()"></select>
+                <button onclick="changeMonth(1)">▶</button>
+            </div>
+            <div class="calendar" id="calendar-grid"></div>
+        </div>
+    </div>
+
+    <!-- Screen 5: Timer (Pomodoro) -->
+    <div class="screen" id="timer-screen">
+        <div class="section" id="timer">
+            <h2>Таймер</h2>
+            <p>Установите время для работы:</p>
+            <input type="number" id="pomodoro-length" placeholder="Минуты" value="25" min="1">
+            <button onclick="startPomodoro()">Старт</button>
+            <div id="timer-display">25:00</div>
+        </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <div class="nav">
+        <button onclick="showScreen('goals-screen')">Цели</button>
+        <button onclick="showScreen('tips-screen')">Советы</button>
+        <button onclick="showScreen('todo-screen')">Задачи</button>
+        <button onclick="showScreen('calendar-screen')">Календарь</button>
+        <button onclick="showScreen('timer-screen')">Таймер</button>
+    </div>
+
+    <script>
+        // Navigation between screens
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        // Task Storage
+        const tasks = {};
+
+        function addTask() {
+            const taskInput = document.getElementById('task-input');
+            const taskDate = document.getElementById('task-date');
+            const taskText = taskInput.value.trim();
+            const taskDateValue = taskDate.value;
+
+            if (!taskText || !taskDateValue) return;
+
+            // Store the task by date
+            if (!tasks[taskDateValue]) tasks[taskDateValue] = [];
+            tasks[taskDateValue].push(taskText);
+
+            // Update UI
+            updateTaskList();
+            taskInput.value = '';
+            taskDate.value = '';
+
+            createCalendar();  // Update calendar to show tasks
+        }
+
+        function updateTaskList() {
+            const todoList = document.getElementById('todo-list');
+            todoList.innerHTML = '';
+            for (const date in tasks) {
+                tasks[date].forEach((task, index) => {
+                    const li = document.createElement('li');
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.onclick = () => completeTask(date, index);
+                    li.appendChild(checkbox);
+                    li.appendChild(document.createTextNode(` ${task} - ${date}`));
+                    todoList.appendChild(li);
+                });
+            }
+        }
+
+        function completeTask(date, index) {
+            tasks[date].splice(index, 1);
+            if (tasks[date].length === 0) delete tasks[date];
+            updateTaskList();
+            createCalendar();
+        }
+
+        // Calendar Variables
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+
+        function createCalendar() {
+            const calendarGrid = document.getElementById('calendar-grid');
+            calendarGrid.innerHTML = '';
+
+            const monthSelect = document.getElementById('month-select');
+            const yearSelect = document.getElementById('year-select');
+
+            if (monthSelect.children.length === 0) {
+                for (let i = 0; i < 12; i++) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.text = new Date(0, i).toLocaleString('ru-RU', { month: 'long' });
+                    monthSelect.appendChild(option);
+                }
+            }
+
+            if (yearSelect.children.length === 0) {
+                for (let i = 2023; i <= 2033; i++) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.text = i;
+                    yearSelect.appendChild(option);
+                }
+            }
+
+            monthSelect.value = currentMonth;
+            yearSelect.value = currentYear;
+
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            for (let i = 0; i < firstDay; i++) {
+                const emptyDiv = document.createElement('div');
+                calendarGrid.appendChild(emptyDiv);
+            }
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dateDiv = document.createElement('div');
+                const currentDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                dateDiv.className = 'date';
+                dateDiv.innerText = i;
+
+                if (tasks[currentDate]) dateDiv.classList.add('task-date');
+
+                dateDiv.onclick = () => alert(`Задачи на ${currentDate}: ${tasks[currentDate] ? tasks[currentDate].join(', ') : 'нет задач'}`);
+                calendarGrid.appendChild(dateDiv);
+            }
+        }
+
+        function changeMonth(direction) {
+            currentMonth += direction;
+            if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+            if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+            createCalendar();
+        }
+
+        // Timer Variables and Functions
+        let timer;
+        let isWorkTime = true;
+
+        function startPomodoro() {
+            clearInterval(timer);
+
+            let timeLeft = isWorkTime ? document.getElementById('pomodoro-length').value * 60 : 5 * 60;
+            const timerDisplay = document.getElementById('timer-display');
+
+            timer = setInterval(() => {
+                const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+                const seconds = (timeLeft % 60).toString().padStart(2, '0');
+                timerDisplay.textContent = `${minutes}:${seconds}`;
+
+                if (--timeLeft < 0) {
+                    clearInterval(timer);
+                    isWorkTime = !isWorkTime;
+                    alert(isWorkTime ? 'Время работать!' : 'Перерыв!');
+                    startPomodoro();
+                }
+            }, 1000);
+        }
+
+        function saveGoals() {
+            const goalsInput = document.getElementById('goals-input');
+            localStorage.setItem('userGoals', goalsInput.value);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedGoals = localStorage.getItem('userGoals');
+            if (savedGoals) document.getElementById('goals-input').value = savedGoals;
+
+            createCalendar();
+        });
+    </script>
+</body>
+</html>
